@@ -40,34 +40,11 @@ async function main() {
   const baseUrl = `${RANCHER_URL}/v2-beta/projects/${PROJECT_ID}`;
 
   let success = false;
-  // Check the stack
-  const {result: stack} = await http.getJson<any>(`${baseUrl}/stacks?name=${STACK_NAME}`);
-  if (!stack || !stack.data[0]) {
-    throw new Error('Could not find stack name. Check the stack_name input. Deploy failed!');
-  }
-  const stackId = stack.data[0].id;
 
-  // Check the service
-  const {result: service} = await http.getJson<any>(`${baseUrl}/services?name=${SERVICE_NAME}&stackId=${stackId}`);
-  if (!service || !service.data[0]) {
-    throw new Error('Could not find service name. Check the service_name input. Deploy failed!');
-  }
-  const {id, launchConfig} = service.data[0];
-  launchConfig.imageUuid = `docker:${DOCKER_IMAGE}`;
-
-  // Upgrade
-  await http.postJson(`${baseUrl}/service/${id}?action=upgrade`, {
-    inServiceStrategy: {
-      launchConfig,
-    },
-  });
-  console.log('Waiting for upgrade ...');
-  await waitForState('upgraded', http, baseUrl, id, RETRY_COUNT, RETRY_DELAY);
-
-  // Finish upgrade
-  await http.post(`${baseUrl}/service/${id}?action=finishupgrade`, '');
-  console.log('Waiting for service starting ...');
-  await waitForState('active', http, baseUrl, id, RETRY_COUNT, RETRY_DELAY);
+  // Deployed
+  await http.postJson(`${baseUrl}/service/${id}`, {});
+  console.log('Waiting for deploy ...');
+  await waitForState('deployed', http, baseUrl, id, RETRY_COUNT, RETRY_DELAY);
 
   console.log('Service is running, upgrade successful');
   core.setOutput('result', success);
